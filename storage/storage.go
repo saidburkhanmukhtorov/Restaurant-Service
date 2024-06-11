@@ -3,9 +3,12 @@ package storage
 import (
 	"context"
 
-	"github.com/Project_Restaurant/Restaurant-Service/genproto/genproto/menu"
+	"github.com/Project_Restaurant/Restaurant-Service/genproto/menu"
+	"github.com/Project_Restaurant/Restaurant-Service/genproto/reservation"
+	"github.com/Project_Restaurant/Restaurant-Service/genproto/restaurant"
 )
 
+// StorageI defines the interface for interacting with the restaurant service storage.
 type StorageI interface {
 	Menu() MenuI
 	Reservation() ReservationI
@@ -18,9 +21,24 @@ type MenuI interface {
 	GetById(ctx context.Context, req *menu.GetMenuRequest) (*menu.GetMenuResponse, error)
 	Update(ctx context.Context, req *menu.UpdateMenuRequest) (*menu.UpdateMenuResponse, error)
 	Delete(ctx context.Context, req *menu.DeleteMenuRequest) (*menu.DeleteMenuResponse, error)
-	// Add other menu-related methods as needed
 	GetAll(ctx context.Context, req *menu.GetAllMenusRequest) (*menu.GetAllMenusResponse, error)
 }
 
-type ReservationI interface{}
-type RestaurantI interface{}
+// ReservationI defines methods for managing reservations.
+type ReservationI interface {
+	Create(ctx context.Context, req *reservation.CreateReservationRequest) (*reservation.CreateReservationResponse, error)
+	GetById(ctx context.Context, req *reservation.GetReservationRequest) (*reservation.GetReservationResponse, error)
+	Update(ctx context.Context, req *reservation.UpdateReservationRequest) (*reservation.UpdateReservationResponse, error)
+	Delete(ctx context.Context, req *reservation.DeleteReservationRequest) (*reservation.DeleteReservationResponse, error)
+	ListReservations(ctx context.Context, req *reservation.ListReservationsRequest) (*reservation.ListReservationsResponse, error)
+	CheckAvailability(ctx context.Context, req *reservation.CheckAvailabilityRequest) (*reservation.CheckAvailabilityResponse, error)
+}
+
+// RestaurantI defines methods for managing restaurant data.
+type RestaurantI interface {
+	Create(ctx context.Context, req *restaurant.CreateRestaurantRequest) (*restaurant.CreateRestaurantResponse, error)
+	GetById(ctx context.Context, req *restaurant.GetRestaurantRequest) (*restaurant.GetRestaurantResponse, error)
+	Update(ctx context.Context, req *restaurant.UpdateRestaurantRequest) (*restaurant.UpdateRestaurantResponse, error)
+	Delete(ctx context.Context, req *restaurant.DeleteRestaurantRequest) (*restaurant.DeleteRestaurantResponse, error)
+	ListRestaurants(ctx context.Context, req *restaurant.ListRestaurantsRequest) (*restaurant.ListRestaurantsResponse, error)
+}

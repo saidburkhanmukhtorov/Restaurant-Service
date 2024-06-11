@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Project_Restaurant/Restaurant-Service/genproto/genproto/menu"
+	"github.com/Project_Restaurant/Restaurant-Service/genproto/menu"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/rs/zerolog/log"

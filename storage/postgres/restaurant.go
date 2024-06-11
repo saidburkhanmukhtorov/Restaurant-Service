@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Project_Restaurant/Restaurant-Service/genproto/genproto/restaurant"
+	"github.com/Project_Restaurant/Restaurant-Service/genproto/restaurant"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/rs/zerolog/log"
@@ -106,6 +106,8 @@ func (rDb *RestaurantDb) GetById(ctx context.Context, req *restaurant.GetRestaur
 			restaurants 
 		WHERE 
 			id = $1
+		AND 
+			deleted_at = 0
 	`
 	err := rDb.Db.QueryRow(ctx, query, req.Id).Scan(
 		&dbRestaurant.Id,
@@ -198,24 +200,25 @@ func (rDb *RestaurantDb) Update(ctx context.Context, req *restaurant.UpdateResta
 	return &restaurant.UpdateRestaurantResponse{Restaurant: updatedRestaurant.Restaurant}, nil
 }
 
-// Delete deletes a restaurant by its ID.
 func (rDb *RestaurantDb) Delete(ctx context.Context, req *restaurant.DeleteRestaurantRequest) (*restaurant.DeleteRestaurantResponse, error) {
 	query := `
-		DELETE FROM 
+		UPDATE 
 			restaurants 
+		SET 
+			deleted_at = $1 
 		WHERE 
-			id = $1
+			id = $2
 	`
-	_, err := rDb.Db.Exec(ctx, query, req.Id)
+	_, err := rDb.Db.Exec(ctx, query, time.Now().Unix(), req.Id)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			log.Error().Err(err).Msg("Restaurant not found")
 			return nil, ErrRestaurantNotFound
 		}
-		log.Error().Err(err).Msg("Error deleting restaurant")
+		log.Error().Err(err).Msg("Error deleting (soft) restaurant")
 		return nil, err
 	}
-	return &restaurant.DeleteRestaurantResponse{Message: "Restaurant deleted successfully"}, nil
+	return &restaurant.DeleteRestaurantResponse{Message: "Restaurant deleted (soft) successfully"}, nil
 }
 
 // ListRestaurants retrieves a list of restaurants with optional filtering and pagination.
@@ -233,7 +236,8 @@ func (rDb *RestaurantDb) ListRestaurants(ctx context.Context, req *restaurant.Li
 			updated_at
 		FROM 
 			restaurants
-		WHERE 1=1
+		WHERE 
+			deleted_at = 0
 	`
 	filter := ""
 

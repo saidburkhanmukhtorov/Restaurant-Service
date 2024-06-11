@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/Project_Restaurant/Restaurant-Service/genproto/genproto/menu"
+	"github.com/Project_Restaurant/Restaurant-Service/genproto/menu"
 	"github.com/Project_Restaurant/Restaurant-Service/storage/postgres"
 	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
