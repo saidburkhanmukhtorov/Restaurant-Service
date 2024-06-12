@@ -381,3 +381,68 @@ func TestIsValid(t *testing.T) {
 		assert.False(t, isValidResp.Valid, "Deleted reservation should be invalid")
 	})
 }
+
+func TestOrderBill(t *testing.T) {
+	rDb := newTestReservation(t)
+
+	// Create a test reservation
+	reservationID := uuid.NewString()
+	_, err := rDb.Create(context.Background(), &reservation.CreateReservationRequest{
+		Reservation: &reservation.Reservation{
+			Id:              reservationID,
+			UserId:          uuid.NewString(),
+			RestaurantId:    "345e1148-678e-4ec7-9fab-d55df1e9cb54",
+			ReservationTime: time.Now().Add(24 * time.Hour).Format(time.RFC3339),
+			Status:          "PENDING",
+		},
+	})
+	if err != nil {
+		t.Fatalf("Error creating test reservation: %v", err)
+	}
+
+	// Create test menus
+	menu1ID := uuid.NewString()
+	menu2ID := uuid.NewString()
+	_, err = rDb.Db.Exec(context.Background(), `
+		INSERT INTO menus (id, restaurant_id, name, description, price) 
+		VALUES ($1, $2, $3, $4, $5)
+	`, menu1ID, "345e1148-678e-4ec7-9fab-d55df1e9cb54", "Pizza Margherita", "Classic Margherita pizza", 12.99)
+	if err != nil {
+		t.Fatalf("Error creating test menu 1: %v", err)
+	}
+	_, err = rDb.Db.Exec(context.Background(), `
+		INSERT INTO menus (id, restaurant_id, name, description, price) 
+		VALUES ($1, $2, $3, $4, $5)
+	`, menu2ID, "345e1148-678e-4ec7-9fab-d55df1e9cb54", "Pasta Carbonara", "Creamy carbonara pasta", 15.99)
+	if err != nil {
+		t.Fatalf("Error creating test menu 2: %v", err)
+	}
+
+	// Create test orders
+	_, err = rDb.Db.Exec(context.Background(), `
+		INSERT INTO orders (id, reservation_id, menu_id, count) 
+		VALUES ($1, $2, $3, $4)
+	`, uuid.NewString(), reservationID, menu1ID, 2)
+	if err != nil {
+		t.Fatalf("Error creating test order 1: %v", err)
+	}
+	_, err = rDb.Db.Exec(context.Background(), `
+		INSERT INTO orders (id, reservation_id, menu_id, count) 
+		VALUES ($1, $2, $3, $4)
+	`, uuid.NewString(), reservationID, menu2ID, 1)
+	if err != nil {
+		t.Fatalf("Error creating test order 2: %v", err)
+	}
+
+	// Calculate the expected total bill
+	expectedTotalBill := (12.99 * 2) + (15.99 * 1)
+
+	// Get the order bill
+	totalBill, err := rDb.OrderBill(context.Background(), &reservation.OrderBillReq{ReservationId: reservationID})
+	if err != nil {
+		t.Fatalf("Error getting order bill: %v", err)
+	}
+
+	// Assert that the total bill is correct
+	assert.Equal(t, expectedTotalBill, totalBill, "Total bill should match the expected value")
+}

@@ -35,6 +35,7 @@ type ReservationI interface {
 	FoodList(ctx context.Context, in *reservation.OrderFoodListReq) (*reservation.OrderFoodListRes, error)
 	OrderFood(ctx context.Context, in *reservation.OrderFoodReq) (*reservation.OrderFoodRes, error)
 	IsValidReservation(ctx context.Context, in *reservation.IsValidReq) (*reservation.IsValidRes, error)
+	OrderBill(ctx context.Context, req *reservation.OrderBillReq) (float64, error)
 }
 
 // RestaurantI defines methods for managing restaurant data.

@@ -28,6 +28,7 @@ const (
 	ReservationService_FoodList_FullMethodName           = "/reservation.ReservationService/FoodList"
 	ReservationService_OrderFood_FullMethodName          = "/reservation.ReservationService/OrderFood"
 	ReservationService_IsValidReservation_FullMethodName = "/reservation.ReservationService/IsValidReservation"
+	ReservationService_OrderBill_FullMethodName          = "/reservation.ReservationService/OrderBill"
 )
 
 // ReservationServiceClient is the client API for ReservationService service.
@@ -43,6 +44,7 @@ type ReservationServiceClient interface {
 	FoodList(ctx context.Context, in *OrderFoodListReq, opts ...grpc.CallOption) (*OrderFoodListRes, error)
 	OrderFood(ctx context.Context, in *OrderFoodReq, opts ...grpc.CallOption) (*OrderFoodRes, error)
 	IsValidReservation(ctx context.Context, in *IsValidReq, opts ...grpc.CallOption) (*IsValidRes, error)
+	OrderBill(ctx context.Context, in *OrderBillReq, opts ...grpc.CallOption) (*OrderBillRes, error)
 }
 
 type reservationServiceClient struct {
@@ -143,6 +145,16 @@ func (c *reservationServiceClient) IsValidReservation(ctx context.Context, in *I
 	return out, nil
 }
 
+func (c *reservationServiceClient) OrderBill(ctx context.Context, in *OrderBillReq, opts ...grpc.CallOption) (*OrderBillRes, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrderBillRes)
+	err := c.cc.Invoke(ctx, ReservationService_OrderBill_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ReservationServiceServer is the server API for ReservationService service.
 // All implementations must embed UnimplementedReservationServiceServer
 // for forward compatibility
@@ -156,6 +168,7 @@ type ReservationServiceServer interface {
 	FoodList(context.Context, *OrderFoodListReq) (*OrderFoodListRes, error)
 	OrderFood(context.Context, *OrderFoodReq) (*OrderFoodRes, error)
 	IsValidReservation(context.Context, *IsValidReq) (*IsValidRes, error)
+	OrderBill(context.Context, *OrderBillReq) (*OrderBillRes, error)
 	mustEmbedUnimplementedReservationServiceServer()
 }
 
@@ -189,6 +202,9 @@ func (UnimplementedReservationServiceServer) OrderFood(context.Context, *OrderFo
 }
 func (UnimplementedReservationServiceServer) IsValidReservation(context.Context, *IsValidReq) (*IsValidRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method IsValidReservation not implemented")
+}
+func (UnimplementedReservationServiceServer) OrderBill(context.Context, *OrderBillReq) (*OrderBillRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method OrderBill not implemented")
 }
 func (UnimplementedReservationServiceServer) mustEmbedUnimplementedReservationServiceServer() {}
 
@@ -365,6 +381,24 @@ func _ReservationService_IsValidReservation_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ReservationService_OrderBill_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrderBillReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ReservationServiceServer).OrderBill(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ReservationService_OrderBill_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ReservationServiceServer).OrderBill(ctx, req.(*OrderBillReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ReservationService_ServiceDesc is the grpc.ServiceDesc for ReservationService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -407,6 +441,10 @@ var ReservationService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "IsValidReservation",
 			Handler:    _ReservationService_IsValidReservation_Handler,
+		},
+		{
+			MethodName: "OrderBill",
+			Handler:    _ReservationService_OrderBill_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

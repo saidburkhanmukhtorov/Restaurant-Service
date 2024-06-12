@@ -28,7 +28,9 @@ func NewReservation(db *pgx.Conn) *ReservationDb {
 // Create creates a new reservation in the database.
 func (rDb *ReservationDb) Create(ctx context.Context, req *reservation.CreateReservationRequest) (*reservation.CreateReservationResponse, error) {
 
-	reservationID := uuid.New().String()
+	if req.Reservation.Id == "" {
+		req.Reservation.Id = uuid.NewString()
+	}
 	query := `
 		INSERT INTO 
 			reservations (
@@ -66,7 +68,7 @@ func (rDb *ReservationDb) Create(ctx context.Context, req *reservation.CreateRes
 	}
 	log.Logger.Println(reservationTime)
 	err = rDb.Db.QueryRow(ctx, query,
-		reservationID,
+		req.Reservation.Id,
 		req.Reservation.UserId,
 		req.Reservation.RestaurantId,
 		reservationTime,
@@ -463,4 +465,28 @@ func (rDb *ReservationDb) IsValidReservation(ctx context.Context, req *reservati
 	}
 
 	return &reservation.IsValidRes{Valid: exists}, nil
+}
+
+func (rDb *ReservationDb) OrderBill(ctx context.Context, req *reservation.OrderBillReq) (float64, error) {
+	var totalBill float64
+	query := `
+		SELECT 
+			SUM(o.count * m.price) AS total_bill
+		FROM 
+			orders o
+		JOIN 
+			menus m 
+		ON 
+			o.menu_id = m.id
+		WHERE 
+			o.reservation_id = $1
+		AND 
+			o.deleted_at = 0
+	`
+	err := rDb.Db.QueryRow(ctx, query, req.ReservationId).Scan(&totalBill)
+	if err != nil {
+		log.Error().Err(err).Msg("Error calculating order bill")
+		return 0, err
+	}
+	return totalBill, nil
 }

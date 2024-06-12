@@ -3,8 +3,11 @@ package service
 import (
 	"context"
 
+	"github.com/Project_Restaurant/Restaurant-Service/genproto/payment"
 	"github.com/Project_Restaurant/Restaurant-Service/genproto/reservation"
+	"github.com/Project_Restaurant/Restaurant-Service/service/client"
 	"github.com/Project_Restaurant/Restaurant-Service/storage"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 )
 
@@ -125,4 +128,31 @@ func (s *ReservationService) OrderFood(ctx context.Context, req *reservation.Ord
 		return nil, err
 	}
 	return resp, nil
+}
+
+func (s *ReservationService) OrderBill(ctx context.Context, req *reservation.OrderBillReq) (*reservation.OrderBillRes, error) {
+	log.Info().Msg("ReservationService: OrderBill called")
+
+	amount, err := s.stg.Reservation().OrderBill(ctx, req)
+	if err != nil {
+		log.Error().Err(err).Msg("ReservationService: Error calculating order bill")
+		return nil, err
+	}
+
+	paymentClient, err := client.NewClient()
+	if err != nil {
+		log.Error().Err(err).Msg("ReservationService: Error connecting Payment service")
+		return nil, err
+	}
+	paymentReq := payment.Payment{
+		Id:            uuid.NewString(),
+		ReservationId: req.ReservationId,
+		Amount:        amount,
+	}
+	_, err = paymentClient.Payment.CreatePayment(ctx, &payment.CreatePaymentRequest{Payment: &paymentReq})
+	if err != nil {
+		log.Error().Err(err).Msg("ReservationService: Error creating order bill")
+		return nil, err
+	}
+	return &reservation.OrderBillRes{PaymentId: paymentReq.Id}, nil
 }
