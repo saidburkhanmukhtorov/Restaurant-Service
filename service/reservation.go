@@ -8,11 +8,13 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+
 // ReservationService implements the reservation.ReservationServiceServer interface.
 type ReservationService struct {
 	stg storage.StorageI
 	reservation.UnimplementedReservationServiceServer
 }
+
 
 // NewReservationService creates a new ReservationService.
 func NewReservationService(stg storage.StorageI) *ReservationService {
