@@ -205,3 +205,179 @@ func TestCheckAvailability_AvailableBeforeExistingReservation(t *testing.T) {
 	log.Println(resp.Available)
 	assert.True(t, resp.Available, "Time slot should be available")
 }
+
+func TestOrderFoodList(t *testing.T) {
+	rDb := newTestReservation(t)
+	reservationID := "f92552af-8e4f-4101-95ca-fedc3c994b7d"
+
+	// Create a test reservation for which we'll list foods
+	_, err := rDb.Create(context.Background(), &reservation.CreateReservationRequest{
+		Reservation: &reservation.Reservation{
+			UserId:          uuid.NewString(),
+			RestaurantId:    "345e1148-678e-4ec7-9fab-d55df1e9cb54",
+			ReservationTime: time.Now().Add(24 * time.Hour).Format(time.RFC3339),
+			Status:          "PENDING",
+		},
+	})
+	if err != nil {
+		t.Fatalf("Error creating test reservation: %v", err)
+	}
+
+	// Create some test menus
+	menus := []*reservation.Menus{
+		{
+			Id:           uuid.NewString(),
+			RestaurantId: "345e1148-678e-4ec7-9fab-d55df1e9cb54",
+			Name:         "Pizza Margherita",
+			Description:  "Classic Margherita pizza with tomato sauce, mozzarella, and basil",
+			Price:        12.99,
+		},
+		{
+			Id:           uuid.NewString(),
+			RestaurantId: "345e1148-678e-4ec7-9fab-d55df1e9cb54",
+			Name:         "Pasta Carbonara",
+			Description:  "Creamy carbonara pasta with pancetta, eggs, and parmesan cheese",
+			Price:        15.99,
+		},
+	}
+
+	for _, m := range menus {
+		_, err := rDb.Db.Exec(context.Background(), `
+			INSERT INTO menus (
+				id,
+				restaurant_id,
+				name,
+				description,
+				price
+			) VALUES ($1, $2, $3, $4, $5)
+		`, m.Id, m.RestaurantId, m.Name, m.Description, m.Price)
+		if err != nil {
+			t.Fatalf("Error creating test menu: %v", err)
+		}
+	}
+
+	// Get the list of foods for the reservation
+	foodListResp, err := rDb.FoodList(context.Background(), &reservation.OrderFoodListReq{ReservationId: reservationID})
+	if err != nil {
+		t.Fatalf("Error getting food list: %v", err)
+	}
+
+	// Assert that the food list is not empty and contains the correct menus
+	assert.NotEmpty(t, foodListResp.Menus)
+	assert.GreaterOrEqual(t, len(foodListResp.Menus), len(menus))
+	log.Println(foodListResp.Menus)
+	found := false
+	for _, m := range foodListResp.Menus {
+		// Assert that the returned menu ID exists in the created menus list
+		for _, tm := range menus {
+			if tm.Id == m.Id {
+				found = true
+				break
+			}
+		}
+	}
+	assert.True(t, found, "Returned menu ID should be in the created menus list")
+}
+
+func TestOrderFood(t *testing.T) {
+	rDb := newTestReservation(t)
+
+	// Create a test reservation
+	reservationID := "f92552af-8e4f-4101-95ca-fedc3c994b7d"
+	_, err := rDb.Create(context.Background(), &reservation.CreateReservationRequest{
+		Reservation: &reservation.Reservation{
+			UserId:          uuid.NewString(),
+			RestaurantId:    "345e1148-678e-4ec7-9fab-d55df1e9cb54",
+			ReservationTime: time.Now().Add(24 * time.Hour).Format(time.RFC3339),
+			Status:          "PENDING",
+		},
+	})
+	if err != nil {
+		t.Fatalf("Error creating test reservation: %v", err)
+	}
+
+	// Create a test menu
+	menuID := uuid.NewString()
+	_, err = rDb.Db.Exec(context.Background(), `
+		INSERT INTO menus (
+			id,
+			restaurant_id,
+			name,
+			description,
+			price
+		) VALUES ($1, $2, $3, $4, $5)
+	`, menuID, "345e1148-678e-4ec7-9fab-d55df1e9cb54", "Pizza Margherita", "Classic Margherita pizza", 12.99)
+	if err != nil {
+		t.Fatalf("Error creating test menu: %v", err)
+	}
+
+	// Order the menu item
+	orderResp, err := rDb.OrderFood(context.Background(), &reservation.OrderFoodReq{
+		ReservationId: reservationID,
+		MenuId:        menuID,
+		Count:         2,
+	})
+	if err != nil {
+		t.Fatalf("Error ordering food: %v", err)
+	}
+
+	assert.Equal(t, "Order created succesfully", orderResp.Message)
+
+	// Verify the order is created in the database
+	var orderCount int
+	err = rDb.Db.QueryRow(context.Background(), `
+		SELECT COUNT(*)
+		FROM orders
+		WHERE reservation_id = $1 AND menu_id = $2
+	`, reservationID, menuID).Scan(&orderCount)
+	if err != nil {
+		t.Fatalf("Error checking order count: %v", err)
+	}
+
+	assert.Equal(t, 1, orderCount, "Order should be created in the database")
+}
+
+func TestIsValid(t *testing.T) {
+	rDb := newTestReservation(t)
+
+	t.Run("CreateReservation and check validity", func(t *testing.T) {
+		testReservation := createTestReservation()
+
+		createdReservation, err := rDb.Create(context.Background(), testReservation)
+		if err != nil {
+			t.Fatalf("Error creating reservation: %v", err)
+		}
+
+		isValidResp, err := rDb.IsValidReservation(context.Background(), &reservation.IsValidReq{Id: createdReservation.Reservation.Id})
+		if err != nil {
+			t.Fatalf("Error checking reservation validity: %v", err)
+		}
+
+		assert.True(t, isValidResp.Valid, "Newly created reservation should be valid")
+	})
+
+	t.Run("DeleteReservation and check validity", func(t *testing.T) {
+		// Create a temporary reservation to delete
+		tempReservation := createTestReservation()
+		tempReservation.Reservation.UserId = uuid.NewString() // Use a unique user ID for the temp reservation
+
+		createdReservation, err := rDb.Create(context.Background(), tempReservation)
+		if err != nil {
+			t.Fatalf("Error creating temporary reservation: %v", err)
+		}
+
+		// Delete the reservation
+		_, err = rDb.Delete(context.Background(), &reservation.DeleteReservationRequest{Id: createdReservation.Reservation.Id})
+		if err != nil {
+			t.Fatalf("Error deleting reservation: %v", err)
+		}
+
+		// Check if the deleted reservation is no longer valid
+		isValidResp, err := rDb.IsValidReservation(context.Background(), &reservation.IsValidReq{Id: createdReservation.Reservation.Id})
+		if err != nil {
+			t.Fatalf("Error checking reservation validity: %v", err)
+		}
+
+		assert.False(t, isValidResp.Valid, "Deleted reservation should be invalid")
+	})
+}

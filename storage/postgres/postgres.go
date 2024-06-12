@@ -11,7 +11,10 @@ import (
 )
 
 type Storage struct {
-	DB pgx.Conn
+	DB           pgx.Conn
+	MenuS        storage.MenuI
+	ReservationS storage.ReservationI
+	RestaurantS  storage.RestaurantI
 }
 
 func DBConn() (*Storage, error) {
@@ -41,12 +44,21 @@ func DBConn() (*Storage, error) {
 }
 
 func (s *Storage) Menu() storage.MenuI {
-	return nil
+	if s.MenuS == nil {
+		s.MenuS = NewMenu(&s.DB)
+	}
+	return s.MenuS
 }
 func (s *Storage) Reservation() storage.ReservationI {
-	return nil
+	if s.ReservationS == nil {
+		s.ReservationS = NewReservation(&s.DB)
+	}
+	return s.ReservationS
 }
 
 func (s *Storage) Restaurant() storage.RestaurantI {
-	return nil
+	if s.RestaurantS == nil {
+		s.RestaurantS = NewRestaurant(&s.DB)
+	}
+	return s.RestaurantS
 }

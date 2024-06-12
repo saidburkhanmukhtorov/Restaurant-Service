@@ -32,6 +32,9 @@ type ReservationI interface {
 	Delete(ctx context.Context, req *reservation.DeleteReservationRequest) (*reservation.DeleteReservationResponse, error)
 	ListReservations(ctx context.Context, req *reservation.ListReservationsRequest) (*reservation.ListReservationsResponse, error)
 	CheckAvailability(ctx context.Context, req *reservation.CheckAvailabilityRequest) (*reservation.CheckAvailabilityResponse, error)
+	FoodList(ctx context.Context, in *reservation.OrderFoodListReq) (*reservation.OrderFoodListRes, error)
+	OrderFood(ctx context.Context, in *reservation.OrderFoodReq) (*reservation.OrderFoodRes, error)
+	IsValidReservation(ctx context.Context, in *reservation.IsValidReq) (*reservation.IsValidRes, error)
 }
 
 // RestaurantI defines methods for managing restaurant data.

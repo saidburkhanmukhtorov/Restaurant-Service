@@ -90,3 +90,39 @@ func (s *ReservationService) CheckAvailability(ctx context.Context, req *reserva
 	}
 	return resp, nil
 }
+
+// IsValidReservation checks if a reservation is valid.
+func (s *ReservationService) IsValidReservation(ctx context.Context, req *reservation.IsValidReq) (*reservation.IsValidRes, error) {
+	log.Info().Msg("ReservationService: IsValidReservation called")
+
+	resp, err := s.stg.Reservation().IsValidReservation(ctx, req)
+	if err != nil {
+		log.Error().Err(err).Msg("ReservationService: Error checking reservation validity")
+		return nil, err
+	}
+	return resp, nil
+}
+
+// FoodList lists menus for a specific reservation.
+func (s *ReservationService) FoodList(ctx context.Context, req *reservation.OrderFoodListReq) (*reservation.OrderFoodListRes, error) {
+	log.Info().Msg("ReservationService: FoodList called")
+
+	resp, err := s.stg.Reservation().FoodList(ctx, req)
+	if err != nil {
+		log.Error().Err(err).Msg("ReservationService: Error getting food list")
+		return nil, err
+	}
+	return resp, nil
+}
+
+// OrderFood places an order for food items for a reservation.
+func (s *ReservationService) OrderFood(ctx context.Context, req *reservation.OrderFoodReq) (*reservation.OrderFoodRes, error) {
+	log.Info().Msg("ReservationService: OrderFood called")
+
+	resp, err := s.stg.Reservation().OrderFood(ctx, req)
+	if err != nil {
+		log.Error().Err(err).Msg("ReservationService: Error placing food order")
+		return nil, err
+	}
+	return resp, nil
+}

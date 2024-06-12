@@ -374,3 +374,93 @@ func (rDb *ReservationDb) CheckAvailability(ctx context.Context, req *reservatio
 
 	return &reservation.CheckAvailabilityResponse{Available: !exists}, nil
 }
+
+func (rDB *ReservationDb) FoodList(ctx context.Context, req *reservation.OrderFoodListReq) (*reservation.OrderFoodListRes, error) {
+	query := `
+		SELECT
+			m.id, 
+			m.restaurant_id,
+			m.name,
+			m.description,
+			m.price
+		FROM 
+			menus m
+		JOIN
+			reservations r
+		ON
+			r.restaurant_id = m.restaurant_id
+		WHERE
+			r.id = $1
+		AND
+			r.deleted_at = 0
+		AND
+			m.deleted_at = 0
+	`
+	menusRes := []*reservation.Menus{}
+	rows, err := rDB.Db.Query(ctx, query, req.ReservationId)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		menu := reservation.Menus{}
+		err := rows.Scan(
+			&menu.Id,
+			&menu.RestaurantId,
+			&menu.Name,
+			&menu.Description,
+			&menu.Price,
+		)
+		if err != nil {
+			log.Error().Err(err).Msg("Error scanning reservation row")
+			return nil, err
+		}
+		menusRes = append(menusRes, &menu)
+	}
+	return &reservation.OrderFoodListRes{Menus: menusRes}, nil
+}
+
+func (rDB *ReservationDb) OrderFood(ctx context.Context, req *reservation.OrderFoodReq) (*reservation.OrderFoodRes, error) {
+	if req.Id == "" {
+		req.Id = uuid.NewString()
+	}
+	query := `
+		INSERT INTO 
+			orders (
+				id,
+				reservation_id,
+				menu_id,
+				count
+			) 
+		VALUES (
+				$1, 
+				$2, 
+				$3,
+				$4
+			)
+	`
+	_, err := rDB.Db.Exec(ctx, query, req.Id, req.ReservationId, req.MenuId, req.Count)
+	if err != nil {
+		log.Error().Err(err).Msg("Error inserting orders information")
+		return nil, err
+	}
+
+	return &reservation.OrderFoodRes{Message: "Order created succesfully"}, nil
+}
+
+func (rDb *ReservationDb) IsValidReservation(ctx context.Context, req *reservation.IsValidReq) (*reservation.IsValidRes, error) {
+	var exists bool
+	query := `
+		SELECT EXISTS (
+			SELECT 1
+			FROM reservations
+			WHERE id = $1 AND deleted_at = 0
+		)
+	`
+	err := rDb.Db.QueryRow(ctx, query, req.Id).Scan(&exists)
+	if err != nil {
+		log.Error().Err(err).Msg("Error checking reservation validity")
+		return nil, err
+	}
+
+	return &reservation.IsValidRes{Valid: exists}, nil
+}
