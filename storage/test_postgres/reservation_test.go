@@ -257,7 +257,7 @@ func TestOrderFoodList(t *testing.T) {
 	}
 
 	// Get the list of foods for the reservation
-	foodListResp, err := rDb.FoodList(context.Background(), &reservation.OrderFoodListReq{ReservationId: reservationID})
+	foodListResp, err := rDb.FoodList(context.Background(), &reservation.OrderFoodListReq{RestaurantId: reservationID})
 	if err != nil {
 		t.Fatalf("Error getting food list: %v", err)
 	}

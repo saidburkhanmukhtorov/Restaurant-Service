@@ -40,7 +40,14 @@ func DBConn() (*Storage, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Storage{}, err
+	rest := NewRestaurant(db)
+	reser := NewReservation(db)
+	menu := NewMenu(db)
+	return &Storage{
+		RestaurantS:  rest,
+		ReservationS: reser,
+		MenuS:        menu,
+	}, err
 }
 
 func (s *Storage) Menu() storage.MenuI {

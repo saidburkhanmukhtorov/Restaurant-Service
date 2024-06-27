@@ -275,10 +275,10 @@ func (rDb *RestaurantDb) ListRestaurants(ctx context.Context, req *restaurant.Li
 	var restaurants []*restaurant.Restaurant
 	for rows.Next() {
 		var (
-			dbRestaurant restaurant.Restaurant
-			createdAt    time.Time
-			updatedAt    time.Time
+			createdAt time.Time
+			updatedAt time.Time
 		)
+		dbRestaurant := &restaurant.Restaurant{}
 		err := rows.Scan(
 			&dbRestaurant.Id,
 			&dbRestaurant.Name,
@@ -295,7 +295,7 @@ func (rDb *RestaurantDb) ListRestaurants(ctx context.Context, req *restaurant.Li
 		dbRestaurant.CreatedAt = createdAt.Format(time.RFC3339)
 		dbRestaurant.UpdatedAt = updatedAt.Format(time.RFC3339)
 
-		restaurants = append(restaurants, &dbRestaurant)
+		restaurants = append(restaurants, dbRestaurant)
 	}
 
 	if err = rows.Err(); err != nil {

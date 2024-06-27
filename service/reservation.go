@@ -91,6 +91,7 @@ func (s *ReservationService) CheckAvailability(ctx context.Context, req *reserva
 		log.Error().Err(err).Msg("ReservationService: Error checking reservation availability")
 		return nil, err
 	}
+
 	return resp, nil
 }
 
@@ -144,12 +145,14 @@ func (s *ReservationService) OrderBill(ctx context.Context, req *reservation.Ord
 		log.Error().Err(err).Msg("ReservationService: Error connecting Payment service")
 		return nil, err
 	}
+
 	paymentReq := payment.Payment{
 		Id:            uuid.NewString(),
 		ReservationId: req.ReservationId,
 		Amount:        amount,
 	}
 	_, err = paymentClient.Payment.CreatePayment(ctx, &payment.CreatePaymentRequest{Payment: &paymentReq})
+	log.Logger.Println(amount)
 	if err != nil {
 		log.Error().Err(err).Msg("ReservationService: Error creating order bill")
 		return nil, err

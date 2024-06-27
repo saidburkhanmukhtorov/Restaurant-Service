@@ -66,6 +66,9 @@ func (rDb *ReservationDb) Create(ctx context.Context, req *reservation.CreateRes
 	if err != nil {
 		return nil, fmt.Errorf("invalid reservation time format: %w", err)
 	}
+	if reservationTime.Before(time.Now()) {
+		return nil, fmt.Errorf("expired reservation time: %w", err)
+	}
 	log.Logger.Println(reservationTime)
 	err = rDb.Db.QueryRow(ctx, query,
 		req.Reservation.Id,
@@ -168,6 +171,9 @@ func (rDb *ReservationDb) Update(ctx context.Context, req *reservation.UpdateRes
 		reservationTime, err := time.Parse(time.RFC3339, req.Reservation.ReservationTime)
 		if err != nil {
 			return nil, fmt.Errorf("invalid reservation time format: %w", err)
+		}
+		if reservationTime.Before(time.Now()) {
+			return nil, fmt.Errorf("expired reservation time: %w", err)
 		}
 		filter += fmt.Sprintf(" reservation_time = $%d, ", count)
 		args = append(args, reservationTime)
@@ -347,11 +353,15 @@ func (rDb *ReservationDb) ListReservations(ctx context.Context, req *reservation
 
 // CheckAvailability checks if a reservation is available for a given restaurant and time.
 func (rDb *ReservationDb) CheckAvailability(ctx context.Context, req *reservation.CheckAvailabilityRequest) (*reservation.CheckAvailabilityResponse, error) {
+
+	log.Logger.Println(req)
 	reservationTime, err := time.Parse(time.RFC3339, req.ReservationTime)
 	if err != nil {
 		return nil, fmt.Errorf("invalid reservation time format: %w", err)
 	}
-
+	if reservationTime.Before(time.Now()) {
+		return nil, fmt.Errorf("expired reservation time: %w", err)
+	}
 	// Calculate the end time of the reservation (reservation time + 1 hour)
 	endTime := reservationTime.Add(time.Hour)
 
@@ -377,29 +387,25 @@ func (rDb *ReservationDb) CheckAvailability(ctx context.Context, req *reservatio
 	return &reservation.CheckAvailabilityResponse{Available: !exists}, nil
 }
 
+// 2006-01-02T15:04:05Z07:00
+// 2024-06-13T11:18:07Z05:00
 func (rDB *ReservationDb) FoodList(ctx context.Context, req *reservation.OrderFoodListReq) (*reservation.OrderFoodListRes, error) {
 	query := `
 		SELECT
-			m.id, 
-			m.restaurant_id,
-			m.name,
-			m.description,
-			m.price
+			id, 
+			restaurant_id,
+			name,
+			description,
+			price
 		FROM 
-			menus m
-		JOIN
-			reservations r
-		ON
-			r.restaurant_id = m.restaurant_id
+			menus 
 		WHERE
-			r.id = $1
+			restaurant_id = $1
 		AND
-			r.deleted_at = 0
-		AND
-			m.deleted_at = 0
+			deleted_at = 0
 	`
 	menusRes := []*reservation.Menus{}
-	rows, err := rDB.Db.Query(ctx, query, req.ReservationId)
+	rows, err := rDB.Db.Query(ctx, query, req.RestaurantId)
 	if err != nil {
 		return nil, err
 	}
@@ -418,6 +424,7 @@ func (rDB *ReservationDb) FoodList(ctx context.Context, req *reservation.OrderFo
 		}
 		menusRes = append(menusRes, &menu)
 	}
+	log.Logger.Println(req.RestaurantId)
 	return &reservation.OrderFoodListRes{Menus: menusRes}, nil
 }
 

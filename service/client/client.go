@@ -1,7 +1,7 @@
 package client // Assuming your client package
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/Project_Restaurant/Restaurant-Service/genproto/payment"
 	"google.golang.org/grpc"
@@ -14,11 +14,11 @@ type ClientStruct struct {
 
 func NewClient() (*ClientStruct, error) {
 
-	paymentConn, err := grpc.NewClient("localhost:8082", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	paymentConn, err := grpc.NewClient("localhost:8083", grpc.WithTransportCredentials(insecure.NewCredentials())) // Update the address
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to payment service: %v", err)
+		log.Fatalf("Failed to connect to payment service: %v", err)
+		return nil, err
 	}
-	defer paymentConn.Close()
 	return &ClientStruct{
 		Payment: payment.NewPaymentServiceClient(paymentConn),
 	}, nil
